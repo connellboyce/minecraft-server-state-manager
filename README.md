@@ -1,5 +1,5 @@
 # Minecraft Server State Manager Lambda Function
-To handle the starting, stopping, and status checking of a Minecraft server
+Start, Stop, and check the player count of a Minecraft Server running in Amazon EC2.
 
 ## Prerequisites
 1. Ensure you have a working Minecraft Server running in an EC2 instance.
