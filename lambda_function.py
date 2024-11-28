@@ -25,20 +25,22 @@ def lambda_handler(event, context):
     if path == "/start":
         return start_server(schedule_template)
 
+    if path == "/stop":
+        return stop_server(schedule_template)
+
     elif path == "/manage-state":
         return manage_server_state(schedule_template)
 
     else:
         return {
             "statusCode": 400,
-            "body": "Invalid path. Use '/start' or '/manage-state'."
+            "body": "Invalid path. Use '/start', 'stop', or '/manage-state'."
         }
 
 def start_server(schedule_template):
     response = ec2.describe_instances(InstanceIds=[INSTANCE_ID])
     state = response['Reservations'][0]['Instances'][0]['State']['Name']
-
-    # Check if the server is able to be started
+    
     if state == "stopping":
         return {
             "statusCode": 200,
@@ -53,8 +55,16 @@ def start_server(schedule_template):
 
     return {
         "statusCode": 200,
-        "body": "Server started and state management enabled."
+        "body": "Server started and auto-shutdown enabled."
     }
+
+def stop_server(schedule_template):
+    ec2.start_instances(InstanceIds=[INSTANCE_ID])
+    scheduler.update_schedule(Name=RULE_NAME, State='DISABLED', FlexibleTimeWindow=flex_window, ScheduleExpression="rate(1 hour)", Target=schedule_template)
+    return {
+            "statusCode": 200,
+            "body": "Server is being force stopped."
+        }
 
 def manage_server_state(schedule_template):
     try:
@@ -69,7 +79,6 @@ def manage_server_state(schedule_template):
         # Get the state of the instance
         state = response['Reservations'][0]['Instances'][0]['State']['Name']
 
-	# If the instance is running and this exception is being handled, it means Minecraft is not accessible. 
         if state != "running":
             scheduler.update_schedule(Name=RULE_NAME, State='DISABLED', FlexibleTimeWindow=flex_window, ScheduleExpression="rate(1 hour)", Target=schedule_template)
 
@@ -79,7 +88,7 @@ def manage_server_state(schedule_template):
             }
         return {
                 "statusCode": 200,
-                "body": "Server is not reachable at this time."
+                "body": "Server is not reachable but the instance is running. Maybe try to force stop with the mcstop command."
             }
     if player_count == 0:
         # Stop EC2 instance if no players are online
@@ -90,7 +99,7 @@ def manage_server_state(schedule_template):
 
         return {
             "statusCode": 200,
-            "body": "Server is being stopped and state management disabled (no players online)."
+            "body": "Server has no players online so it will now be stopped."
         }
 
     return {
