@@ -59,7 +59,7 @@ def start_server(schedule_template):
     }
 
 def stop_server(schedule_template):
-    ec2.start_instances(InstanceIds=[INSTANCE_ID])
+    ec2.stop_instances(InstanceIds=[INSTANCE_ID])
     scheduler.update_schedule(Name=RULE_NAME, State='DISABLED', FlexibleTimeWindow=flex_window, ScheduleExpression="rate(1 hour)", Target=schedule_template)
     return {
             "statusCode": 200,
